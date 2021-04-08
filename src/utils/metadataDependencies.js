@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 
-const token = '00D290000001SaY!AR0AQBMxN1AiNIjdY9SCDbl89Fj3WjNS2q0QoXG3JItRjv49Gv5YqcZzqnvh7ZfrBggGIelTKu_GVUdGzVC5a5qWa5ot5L2K';
+const token = '00D290000001SaY!AR0AQH8y1fj6L06m6NyLevJL47B3pIQw2d42kQL3OxSkdNYdlCsYjhorW5S8yfcTtbNTDVpWUu7CRytYjvE4c4pTC6faPhWS';
 
 const getDependencies = () => {
     return new Promise((resolve, reject) => {
@@ -12,7 +12,26 @@ const getDependencies = () => {
                 return getResults(result.id);
             })
             .then((result) => {
-                resolve(result);
+                let dependencies = [];
+                let cleanedString = result.replace(/"/g, '');
+        
+                cleanedString.split(/\r?\n/).forEach((el, i) => {
+                    if(i !== 0){
+                        let record = el.split(",");
+                        dependencies.push(
+                            {
+                                MetadataComponentId: record[0],
+                                MetadataComponentName: record[1],
+                                MetadataComponentType: record[2],
+                                RefMetadataComponentId: record[3],
+                                RefMetadataComponentName: record[4],
+                                RefMetadataComponentType: record[5]
+                            }
+                        )
+                    }
+                   
+                })
+                resolve(dependencies);
             })
             .catch((error) => reject(error));
     })
@@ -22,7 +41,7 @@ const queryDependencies = new Promise((resolve, reject) => {
     const url = 'https://maxhnb--mattvdev.my.salesforce.com/services/data/v51.0/tooling/jobs/query/';
     const requestBody = {
         operation: 'query',
-        query: 'SELECT MetadataComponentId, MetadataComponentName, MetadataComponentType, RefMetadataComponentId, RefMetadataComponentName, RefMetadataComponentType FROM MetadataComponentDependency WHERE RefMetadataComponentType = \'ApexClass\''
+        query: 'SELECT MetadataComponentId, MetadataComponentName, MetadataComponentType, RefMetadataComponentId, RefMetadataComponentName, RefMetadataComponentType FROM MetadataComponentDependency WHERE RefMetadataComponentType = \'ApexClass\' ORDER BY RefMetadataComponentName ASC'
     }
 
     fetch(url, { 
