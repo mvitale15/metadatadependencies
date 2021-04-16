@@ -1,9 +1,10 @@
+const { query } = require('express');
 const fetch = require('node-fetch');
 
-const token = '00D290000001SaY!AR0AQH8y1fj6L06m6NyLevJL47B3pIQw2d42kQL3OxSkdNYdlCsYjhorW5S8yfcTtbNTDVpWUu7CRytYjvE4c4pTC6faPhWS';
-
-const getDependencies = () => {
+const getDependencies = async (accessToken, instanceURL) => {
     return new Promise((resolve, reject) => {
+        const queryJob = await queryDependencies();
+        await queryJobStatus(queryJob.id);
         queryDependencies
             .then((result) => {
                 return queryJobStatus(result.id)    
@@ -38,7 +39,8 @@ const getDependencies = () => {
 }
 
 const queryDependencies = new Promise((resolve, reject) => {
-    const url = 'https://maxhnb--mattvdev.my.salesforce.com/services/data/v51.0/tooling/jobs/query/';
+    //const url = `${process.env.SF_INSTANCE_URL}/services/data/${process.env.SF_API}/tooling/jobs/query/`;
+    const url = `https://test.salesforce.com/services/data/${process.env.SF_API}/tooling/jobs/query/`;
     const requestBody = {
         operation: 'query',
         query: 'SELECT MetadataComponentId, MetadataComponentName, MetadataComponentType, RefMetadataComponentId, RefMetadataComponentName, RefMetadataComponentType FROM MetadataComponentDependency WHERE RefMetadataComponentType = \'ApexClass\' ORDER BY RefMetadataComponentName ASC'
@@ -47,7 +49,7 @@ const queryDependencies = new Promise((resolve, reject) => {
     fetch(url, { 
         method: 'POST', 
         body: JSON.stringify(requestBody),
-        headers: {'Authorization': `Bearer ${token}`,
+        headers: {'Authorization': `Bearer ${process.env.SF_AUTH_TOKEN}`,
                   'Content-Type': 'application/json'
                 } 
     })
@@ -59,11 +61,11 @@ const queryDependencies = new Promise((resolve, reject) => {
 
 const queryJobStatus = (jobId) => {
     return new Promise((resolve, reject) => {
-        const url = `https://maxhnb--mattvdev.my.salesforce.com/services/data/v51.0/tooling/jobs/query/${jobId}`;
-
+        //const url = `${process.env.SF_INSTANCE_URL}/services/data/${process.env.SF_API}/tooling/jobs/query/${jobId}`;
+        const url = `https://test.salesforce.com/services/data/${process.env.SF_API}/tooling/jobs/query/${jobId}`;
         fetch(url, { 
             method: 'GET', 
-            headers: {'Authorization': `Bearer ${token}`,
+            headers: {'Authorization': `Bearer ${process.env.SF_AUTH_TOKEN}`,
                       'Content-Type': 'application/json'
                     } 
         })
@@ -81,11 +83,11 @@ const queryJobStatus = (jobId) => {
 
 const getResults = (jobId) => {
     return new Promise((resolve, reject) => {
-        const url = `https://maxhnb--mattvdev.my.salesforce.com/services/data/v51.0/tooling/jobs/query/${jobId}/results`;
-
+        //const url = `${process.env.SF_INSTANCE_URL}/services/data/${process.env.SF_API}/tooling/jobs/query/${jobId}/results`;
+        const url = `https://test.salesforce.com/services/data/${process.env.SF_API}/tooling/jobs/query/${jobId}/results`;
         fetch(url, { 
             method: 'GET', 
-            headers: {'Authorization': `Bearer ${token}`,
+            headers: {'Authorization': `Bearer ${process.env.SF_AUTH_TOKEN}`,
                       'Content-Type': 'application/json'
                     } 
         })

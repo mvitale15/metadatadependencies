@@ -1,87 +1,72 @@
 const express = require('express');
 const nforce = require('nforce');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
+
 
 dotenv.config({path: 'src/config/.env'});
 
 const app = express();
-const router = express.Router();
+app.use(cookieParser());
 const port = process.env.PORT || 3000;
 
 const getDependencies = require('./utils/metadataDependencies');
 const getClasses = require('./utils/apexClasses');
-const auth = require('./utils/auth');
 
 const org = nforce.createConnection({
     clientId: process.env.SF_CLIENTID,
     clientSecret: process.env.SF_CLIENTSECRET,
-    redirectUri: '/auth/sfdc/callback',
+    redirectUri: 'http://localhost:3000/auth/sfdc/callback',
     apiVersion: process.env.SF_API,  // optional, defaults to current salesforce API version
     environment: 'sandbox'//,  // optional, salesforce 'sandbox' or 'production', production default
     //mode: 'multi' // optional, 'single' or 'multi' user mode, multi default
   });
-
-app.get('', (req, res) => {
-    let results = {};
-    //console.log(req);
-    //console.log(res);
-    getDependencies()
-     .then((result) => {
-        //console.log(result);
-        results.dependencies = result;
-        return getClasses();
-     })
-     .then((result) => {
-        results.apexClasses = result;
-        res.send(results);
-        //console.log(result)
-     })
-     .catch((error) => {
-         console.error(error);
-     })
-})
 
 app.get('/auth/sfdc', function(req,res){
     res.redirect(org.getAuthUri());
 });
 
 app.get('/auth/sfdc/callback', function(req, res) {
-    console.log(req);
+
     org.authenticate({code: req.query.code}, function(err, resp){
         if(!err) {
-        console.log('Access Token: ' + resp.access_token);
+            res
+                .cookie('accessToken', resp.access_token,  { 
+                    expires: new Date(Date.now() + 8 * 3600000),
+                    httpOnly: true,
+                    secure: false
+                })
+                .cookie('instanceURL', resp.instance_url,  { 
+                    expires: new Date(Date.now() + 8 * 3600000),
+                    httpOnly: true,
+                    secure: false
+                })
+                .redirect('/metadatadepdencies');
         } else {
-        console.log('Error: ' + err.message);
+            console.error('Error: ' + err.message);
         }
     });
 });
 
-// const auth = () => {
-//     const url = `https://test.salesforce.com/services/oauth2/authorize?response_type=token&client_id=${process.env.SF_CLIENTID}&redirect_uri=localhost:3000&state=mystate`;
-//     //const url = 'https://maxhnb--mattvdev.my.salesforce.com/services/data/v51.0/tooling/jobs/query/';
-//     /*const requestBody = {
-//         operation: 'query',
-//         query: 'SELECT MetadataComponentId, MetadataComponentName, MetadataComponentType, RefMetadataComponentId, RefMetadataComponentName, RefMetadataComponentType FROM MetadataComponentDependency WHERE RefMetadataComponentType = \'ApexClass\''
-//     }*/
+app.get('/metadatadepdencies', async (req, res) => {
+    let results = {};
 
-//     fetch(url, { 
-//         method: 'POST', 
-//         /*body: JSON.stringify(requestBody),
-//         headers: {'Authorization': `Bearer ${token}`,
-//                   'Content-Type': 'application/json'
-//                 } */
-//     })
-//     .then(res => res.json())
-//     .then(json => resolve(json))
-//     .catch(error => reject(Error(error)));
-// })
+    try{
+        const accessToken= req.cookies.accessToken;
+        const instanceURL = req.cookies.instanceURL;
 
+        const dependencies = await getDependencies(accessToken, instanceURL);
+        const classes = await getClasses(accessToken, instanceURL);
 
-// getDependencies()
-//     .then((result) => {
-//         console.log(result);
-//     })
+        results = {
+            dependencies,
+            classes
+        };
 
-app.listen(port, () => {
-    console.log(`server started port ${port}`);
-});
+        res.send(results);
+    } catch(e){
+        res.status(500).send(e);
+    }
+})
+
+app.listen(port, () => {});
