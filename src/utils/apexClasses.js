@@ -1,38 +1,48 @@
 const fetch = require('node-fetch');
+let token;
+let instance = 'https://test.salesforce.com/';
 
-const getClasses = (accessToken, instanceURL) => {
-    return new Promise((resolve, reject) => {
-        queryClasses
-            .then((result) => {
-                let apexClasses = [];
+const getClasses = async (accessToken, instanceURL) => {
+    token = accessToken;
+    instance = instanceURL;
 
-                result.records.forEach(el => {
-                    apexClasses.push(
-                        {
-                            Id: el.Id,
-                            Name: el.Name,
-                        }
-                    )
-                })
-                resolve(apexClasses);
-            })
-            .catch((error) => reject(error));
-    })
+    let apexClasses = [];
+
+    try{
+        const results = await queryClasses();
+
+        results.records.forEach(el => {
+            apexClasses.push(
+                {
+                    Id: el.Id,
+                    Name: el.Name,
+                }
+            )
+        })
+    
+        return apexClasses;
+    } catch(e){
+        console.error(e);
+    }
 }
 
-const queryClasses = new Promise((resolve, reject) => {
+const queryClasses = async () => {    
     const query = encodeURIComponent('SELECT Id, Name, NamespacePrefix FROM ApexClass WHERE NamespacePrefix = null ORDER BY Name ASC');
-    //const url = `${process.env.SF_INSTANCE_URL}/services/data/${process.env.SF_API}/query/?q=${query}`;
-    const url = `https://test.salesforce.com/services/data/${process.env.SF_API}/query/?q=${query}`;
-    fetch(url, { 
-        method: 'GET', 
-        headers: {'Authorization': `Bearer ${process.env.SF_AUTH_TOKEN }`,
-                  'Content-Type': 'application/json'
-                } 
-    })
-    .then(res => res.json())
-    .then(json => resolve(json))
-    .catch(error => reject(Error(error)));
-})
+    const url = `${instance}/data/${process.env.SF_API}/query/?q=${query}`;
+
+    try{
+        const res = await fetch(url, { 
+                                        method: 'GET', 
+                                        headers: {'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json'
+                                                } 
+                                    })
+        console.log(res);
+        const json = await res.json();
+        return json;
+    } catch(e) {
+        console.error(e);
+    }
+}
 
 module.exports = getClasses;

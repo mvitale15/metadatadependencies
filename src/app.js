@@ -52,11 +52,8 @@ app.get('/metadatadepdencies', async (req, res) => {
     let results = {};
 
     try{
-        const accessToken= req.cookies.accessToken;
-        const instanceURL = req.cookies.instanceURL;
-
-        const dependencies = await getDependencies(accessToken, instanceURL);
-        const classes = await getClasses(accessToken, instanceURL);
+        const dependencies = await getDependencies(req.cookies.accessToken, req.cookies.instanceURL);
+        const classes = await getClasses(req.cookies.accessToken, req.cookies.instanceURL);
 
         results = {
             dependencies,
