@@ -49,16 +49,15 @@ app.get('/auth/sfdc/callback', function(req, res) {
 });
 
 app.get('/metadatadepdencies', async (req, res) => {
-    let results = {};
-
     try{
         const dependencies = await getDependencies(req.cookies.accessToken, req.cookies.instanceURL);
         const classes = await getClasses(req.cookies.accessToken, req.cookies.instanceURL);
 
-        results = {
-            dependencies,
-            classes
-        };
+        const results = classes.filter((obj) => {
+            let name = obj.Name ? obj.Name.toLowerCase() : '';
+
+            return (!(obj.Id in dependencies) && !(name.includes('test')));
+        });
 
         res.send(results);
     } catch(e){

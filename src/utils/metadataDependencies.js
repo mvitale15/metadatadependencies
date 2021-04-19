@@ -7,7 +7,7 @@ const getDependencies = async (accessToken, instanceURL) => {
     instance = instanceURL;
 
     try{
-        let dependencies = [];
+        let dependencies = {};
         const queryJob = await queryDependencies();
         await queryJobStatus(queryJob.id);
         const results = await getResults(queryJob.id);
@@ -17,8 +17,11 @@ const getDependencies = async (accessToken, instanceURL) => {
         cleanedString.split(/\r?\n/).forEach((el, i) => {
             if(i !== 0){
                 let record = el.split(",");
-                dependencies.push(
-                    {
+                const refId = record[3];
+
+                let metadataComponentName = record[1] ? record[1].toLowerCase() : '' ;
+                if(!(metadataComponentName.includes('test'))){
+                    let dependency = {
                         MetadataComponentId: record[0],
                         MetadataComponentName: record[1],
                         MetadataComponentType: record[2],
@@ -26,7 +29,13 @@ const getDependencies = async (accessToken, instanceURL) => {
                         RefMetadataComponentName: record[4],
                         RefMetadataComponentType: record[5]
                     }
-                )
+
+                    if(dependencies[refId]) {
+                        dependencies[refId] = [...dependencies[refId], dependency];
+                    } else {
+                        dependencies[refId] = [dependency];
+                    }
+                }
             }
         })
         return dependencies;
